@@ -56,7 +56,6 @@ def intro():
 # Se cargan los archivos con los que se trabajará:
 df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
 df_user_reviews = pd.read_parquet('./Datasets/new_user_reviews.parquet')
-df_segunda_consulta = pd.read_parquet("./Datasets/df_segunda_consulta.parquet")
 
 def developer(desarrollador: str):
     # Filtrar por desarrollador
@@ -91,6 +90,8 @@ def developer(desarrollador: str):
     return result_df
 
 def userdata(User_id: str) -> Dict[str, str]:
+    # Cargar el DataFrame desde el archivo parquet
+    df_segunda_consulta = pd.read_parquet("./Datasets/df_segunda_consulta.parquet")
     
     # Filtrar el DataFrame para obtener las filas correspondientes al User_id dado
     user_data = df_segunda_consulta[df_segunda_consulta['user_id'] == User_id]
@@ -104,15 +105,14 @@ def userdata(User_id: str) -> Dict[str, str]:
     # Obtener la cantidad de items del usuario y convertir a cadena de texto
     items_count = str(user_data['items_count'].sum())
     
-    # Liberar memoria utilizada por el DataFrame intermedio
-    del user_data
+    # Liberamos la memoria utilizada por el DataFrame intermedio
     gc.collect()
 
     # Retornar un diccionario con los resultados
     return {
         "Usuario": User_id,
         "Dinero gastado": f"{money_spent} USD",
-        "% de recomendación": f"{recommend_percentage:.2f}%",
+        "% de recomendación": f"{recommend_percentage}%",
         "Cantidad de items": items_count
     }
     
