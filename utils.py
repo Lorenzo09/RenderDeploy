@@ -69,23 +69,27 @@ def developer(desarrollador: str):
     
     # Obtener el porcentaje de contenido Free por año
     contenido_free_por_anio = df_dev[df_dev['price'] == 0].groupby('release_date').size()
-    porcentaje_free_por_anio = (contenido_free_por_anio / items_por_anio * 100).round(2)
     
-    # Reemplazar valores NaN en "Contenido Free" con "0%"
-    porcentaje_free_por_anio.fillna(0, inplace=True)
+    # Calcular el porcentaje de contenido Free y reemplazar NaN con 0
+    porcentaje_free_por_anio = (contenido_free_por_anio / items_por_anio * 100).fillna(0).round(2)
     
     # Crear un DataFrame con los resultados
-    result_df = pd.DataFrame({'Año': items_por_anio.index,
-                              'Cantidad de Items': items_por_anio.values,
-                              'Contenido Free': porcentaje_free_por_anio.values})
+    result_df = pd.DataFrame({
+        'Año': items_por_anio.index,
+        'Cantidad de Items': items_por_anio.values,
+        'Contenido Free': porcentaje_free_por_anio.values
+    })
     
     # Ordenar el DataFrame por año
-    result_df = result_df.sort_values(by='Año').reset_index(drop=True)
+    result_df.sort_values(by='Año', inplace=True)
     
     # Formatear los valores en la columna "Contenido Free"
     result_df['Contenido Free'] = result_df['Contenido Free'].astype(str) + '%'
-    # Liberamos la memoria utilizada por el DataFrame intermedio
+    
+    # Liberar memoria
+    del df_dev
     gc.collect()
+    
     return result_df
 
 def userdata(User_id: str) -> Dict[str, str]:
@@ -104,14 +108,15 @@ def userdata(User_id: str) -> Dict[str, str]:
     # Obtener la cantidad de items del usuario y convertir a cadena de texto
     items_count = str(user_data['items_count'].sum())
     
-    # Liberamos la memoria utilizada por el DataFrame intermedio
+    # Liberar memoria utilizada por el DataFrame intermedio
+    del user_data
     gc.collect()
 
     # Retornar un diccionario con los resultados
     return {
         "Usuario": User_id,
         "Dinero gastado": f"{money_spent} USD",
-        "% de recomendación": f"{recommend_percentage}%",
+        "% de recomendación": f"{recommend_percentage:.2f}%",
         "Cantidad de items": items_count
     }
     
@@ -120,40 +125,43 @@ def recomendacion_juego(user_id: str):
     Devuelve una lista con 5 sugerencias de juegos para el usuario seleccionado.
     Ejemplo de retorno: {'Sugerencias para el usuario 76561197970982479': ['1. RWBY: Grimm Eclipse', '2. Rogue Legacy', '3. Dust: An Elysian Tail', "4. King Arthur's Gold", '5. RIFT']}
     '''
-    # Si el ID de usuario no se encuentra en los dataframes:
+    # Verificar si el ID de usuario está en el DataFrame de reseñas de usuarios
     if user_id not in df_user_reviews['user_id'].values:
-        return f"ERROR: El ID de usuario {user_id} no existe en la base de datos."  # se imprime un mensaje de error
-    else:
-        # Se asigna el ID ingresado a la variable user
-        user = user_id
+        return f"ERROR: El ID de usuario {user_id} no existe en la base de datos."
+    
+    # Extraer los juegos que el usuario ya ha jugado
+    df_rev_games = pd.merge(df_user_reviews, df_steam_games, left_on="item_id", right_on="id", how="inner")
+    juegos_jugados = df_rev_games[df_rev_games['user_id'] == user_id]
 
-        # En primer lugar, se extraen los juegos que el usuario ya ha jugado:
-        df_rev_games = pd.merge(df_user_reviews, df_steam_games, left_on="item_id", right_on="id", how="inner")
-        juegos_jugados = df_rev_games[df_rev_games['user_id'] == user]
+    # Eliminar los juegos jugados por el usuario del DataFrame de juegos
+    df_user = df_steam_games[["id", "app_name"]].drop(juegos_jugados['id'].values, errors='ignore')
 
-        # Se eliminan del dataframe de juegos los jugados por el usuario
-        df_user = df_steam_games[["id", "app_name"]].drop(juegos_jugados.id, errors='ignore')
+    # Liberar memoria de los DataFrames intermedios
+    del df_rev_games, juegos_jugados
+    gc.collect()
 
-        # Ruta completa al archivo modelo_sentimiento.pkl
-        ruta_modelo = './Datasets/modelo_sentimiento.pkl'
+    # Ruta completa al archivo modelo_sentimiento.pkl
+    ruta_modelo = './Datasets/modelo_sentimiento.pkl'
 
-        # Se carga el modelo de Sistema de Recomendación entrenado desde el archivo especificado
-        with open(ruta_modelo, 'rb') as file:
-            modelo_sentimiento = pickle.load(file)
+    # Cargar el modelo de Sistema de Recomendación entrenado desde el archivo especificado
+    with open(ruta_modelo, 'rb') as file:
+        modelo_sentimiento = pickle.load(file)
 
-        # Se realizan las predicciones y se agregan en una nueva columna:
-        df_user['estimate_Score'] = df_user['id'].apply(lambda x: modelo_sentimiento.predict(user, x).est)
+    # Realizar las predicciones y agregar en una nueva columna
+    df_user['estimate_Score'] = df_user['id'].apply(lambda x: modelo_sentimiento.predict(user_id, x).est)
 
-        # Se ordena el dataframe de manera descendente en función al score y se seleccionan los 5 principales:
-        sugerencias = df_user.sort_values('estimate_Score', ascending=False)["app_name"].head(5).to_list()
+    # Ordenar el DataFrame de manera descendente en función al score y seleccionar los 5 principales
+    sugerencias = df_user.sort_values('estimate_Score', ascending=False)["app_name"].head(5).to_list()
 
-        # Se crea la llave del diccionario de retorno
-        llave_dic = f'Sugerencias para el usuario {user}'
+    # Liberar memoria del DataFrame intermedio
+    del df_user
+    gc.collect()
 
-        # Se da formato a las 5 sugerencias:
-        sugerencias_formateadas = [f'{i+1}. {sugerencia}' for i, sugerencia in enumerate(sugerencias)]
+    # Crear la llave del diccionario de retorno
+    llave_dic = f'Sugerencias para el usuario {user_id}'
 
-        # Liberamos la memoria utilizada por el DataFrame intermedio
-        gc.collect()
-        # Se devuelven los resultados en un diccionario
-        return {llave_dic: sugerencias_formateadas}
+    # Dar formato a las 5 sugerencias
+    sugerencias_formateadas = [f'{i+1}. {sugerencia}' for i, sugerencia in enumerate(sugerencias)]
+
+    # Devolver los resultados en un diccionario
+    return {llave_dic: sugerencias_formateadas}
