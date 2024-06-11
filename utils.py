@@ -56,9 +56,7 @@ def intro():
 # Se cargan los archivos con los que se trabajará:
 df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
 df_user_reviews = pd.read_parquet('./Datasets/new_user_reviews.parquet')
-df_user_items = pd.read_parquet('./Datasets/new_df_users_items.parquet')
-# Definir la ruta al archivo parquet
-PARQUET_FILE_PATH = ("./Datasets/df_segunda_consulta.parquet")
+df_segunda_consulta = pd.read_parquet("./Datasets/df_segunda_consulta.parquet")
 
 def developer(desarrollador: str):
     # Filtrar por desarrollador
@@ -93,8 +91,6 @@ def developer(desarrollador: str):
     return result_df
 
 def userdata(User_id: str) -> Dict[str, str]:
-    # Cargar el DataFrame desde el archivo parquet
-    df_segunda_consulta = pd.read_parquet(PARQUET_FILE_PATH)
     
     # Filtrar el DataFrame para obtener las filas correspondientes al User_id dado
     user_data = df_segunda_consulta[df_segunda_consulta['user_id'] == User_id]

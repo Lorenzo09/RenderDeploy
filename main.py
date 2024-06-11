@@ -36,8 +36,6 @@ def get_developer_info(desarrollador: str):
     result = u.developer(desarrollador)
     return result.to_dict(orient='records')
 
-PARQUET_FILE_PATH = ("./Datasets/df_segunda_consulta.parquet")
-
 @app.get("/userdata/{User_id}", response_model=List,  
             description="""
     <font color="blue">
