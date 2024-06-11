@@ -1,4 +1,5 @@
 import pandas as pd
+import gc
 from typing import Dict
 
 df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
@@ -27,7 +28,8 @@ def developer(desarrollador: str):
     
     # Formatear los valores en la columna "Contenido Free"
     result_df['Contenido Free'] = result_df['Contenido Free'].astype(str) + '%'
-    
+    # Liberamos la memoria utilizada por el DataFrame intermedio
+    gc.collect()
     return result_df
 
 
@@ -49,6 +51,9 @@ def userdata(User_id: str) -> Dict[str, str]:
     
     # Obtener la cantidad de items del usuario y convertir a cadena de texto
     items_count = str(user_data['items_count'].sum())
+    
+    # Liberamos la memoria utilizada por el DataFrame intermedio
+    gc.collect()
     
     # Retornar un diccionario con los resultados
     return {
