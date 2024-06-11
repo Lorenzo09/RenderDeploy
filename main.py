@@ -22,7 +22,7 @@ def intro():
     '''
     return u.intro()
 
-@app.get("/developer/{desarrollador}",response_model=List,
+@app.get("/developer/{desarrollador}",response_model=Dict[str, str],
           description="""
             <font color="blue">
              INSTRUCCIONES<br>
