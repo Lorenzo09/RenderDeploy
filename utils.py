@@ -3,7 +3,7 @@ from typing import Dict
 
 df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
 
-def developer(desarrollador: str, df_steam_games: pd.DataFrame):
+def developer(desarrollador: str):
     # Filtrar por desarrollador
     df_dev = df_steam_games[df_steam_games['developer'] == desarrollador]
     
