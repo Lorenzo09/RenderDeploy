@@ -3,11 +3,7 @@ import gc
 import pickle
 from typing import Dict
 
-# Se cargan los archivos con los que se trabajará:
-df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
-df_user_reviews = pd.read_parquet('./Datasets/new_user_reviews.parquet')
-df_user_items = pd.read_parquet('./Datasets/new_df_users_items.parquet')
-    
+   
 def intro():
     '''
     Iniciamos una primera página en estilo HTML para la API.    
@@ -57,7 +53,10 @@ def intro():
     </html>
     '''
 
-
+# Se cargan los archivos con los que se trabajará:
+df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
+df_user_reviews = pd.read_parquet('./Datasets/new_user_reviews.parquet')
+df_user_items = pd.read_parquet('./Datasets/new_df_users_items.parquet')
 # Definir la ruta al archivo parquet
 PARQUET_FILE_PATH = ("./Datasets/df_segunda_consulta.parquet")
 
