@@ -134,7 +134,7 @@ def recomendacion_juego(user_id: str):
         df_rev_games = pd.merge(
             df_user_reviews,
             df_steam_games,
-            left_on="reviews_item_id",
+            left_on="item_id",
             right_on="id",
             how="inner",
         )
