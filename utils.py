@@ -3,6 +3,11 @@ import gc
 import pickle
 from typing import Dict
 
+# Se cargan los archivos con los que se trabajará:
+df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
+df_user_reviews = pd.read_parquet('./Datasets/new_user_reviews.parquet')
+df_user_items = pd.read_parquet('./Datasets/new_df_users_items.parquet')
+    
 def intro():
     '''
     Iniciamos una primera página en estilo HTML para la API.    
@@ -52,10 +57,9 @@ def intro():
     </html>
     '''
 
-df_steam_games = pd.read_parquet('./Datasets/pdf_SteamGames.parquet')
+
 # Definir la ruta al archivo parquet
 PARQUET_FILE_PATH = ("./Datasets/df_segunda_consulta.parquet")
-df_user_reviews = pd.read_parquet('./Datasets/new_user_reviews.parquet')
 
 def developer(desarrollador: str):
     # Filtrar por desarrollador
@@ -111,69 +115,46 @@ def userdata(User_id: str) -> Dict[str, str]:
         "% de recomendación": f"{recommend_percentage}%",
         "Cantidad de items": items_count
     }
-
+    
 def recomendacion_juego(user_id: str):
-    """
+    '''
     Devuelve una lista con 5 sugerencias de juegos para el usuario seleccionado.
     Ejemplo de retorno: {'Sugerencias para el usuario 76561197970982479': ['1. RWBY: Grimm Eclipse', '2. Rogue Legacy', '3. Dust: An Elysian Tail', "4. King Arthur's Gold", '5. RIFT']}
-
-    Args:
-        user_id (str): El ID del usuario para el cual se desean obtener las recomendaciones de juegos.
-
-    Returns:
-        dict: Un diccionario con una clave que indica el usuario y un valor que es una lista con las 5 recomendaciones de juegos.
-    """
+    '''
     # Si el ID de usuario no se encuentra en los dataframes:
-    if user_id not in df_user_reviews["user_id"].values:
+    if user_id not in df_user_reviews['user_id'].values:
         return f"ERROR: El ID de usuario {user_id} no existe en la base de datos."  # se imprime un mensaje de error
     else:
         # Se asigna el ID ingresado a la variable user
         user = user_id
 
         # En primer lugar, se extraen los juegos que el usuario ya ha jugado:
-        df_rev_games = pd.merge(
-            df_user_reviews,
-            df_steam_games,
-            left_on="item_id",
-            right_on="id",
-            how="inner",
-        )
-        juegos_jugados = df_rev_games[df_rev_games["user_id"] == user]
+        df_rev_games = pd.merge(df_user_reviews, df_steam_games, left_on="item_id", right_on="id", how="inner")
+        juegos_jugados = df_rev_games[df_rev_games['user_id'] == user]
 
         # Se eliminan del dataframe de juegos los jugados por el usuario
-        df_user = df_steam_games[["id", "app_name"]].drop(
-            juegos_jugados.id, errors="ignore"
-        )
+        df_user = df_steam_games[["id", "app_name"]].drop(juegos_jugados.id, errors='ignore')
 
-        # Ruta completa al archivo RS_model.pkl
-        ruta_modelo = "./0 Dataset/RS_model.pkl"
+        # Ruta completa al archivo modelo_sentimiento.pkl
+        ruta_modelo = './Datasets/modelo_sentimiento.pkl'
 
         # Se carga el modelo de Sistema de Recomendación entrenado desde el archivo especificado
-        with open(ruta_modelo, "rb") as file:
-            RS_model = pickle.load(file)
+        with open(ruta_modelo, 'rb') as file:
+            modelo_sentimiento = pickle.load(file)
 
         # Se realizan las predicciones y se agregan en una nueva columna:
-        df_user["estimate_Score"] = df_user["id"].apply(
-            lambda x: RS_model.predict(user, x).est
-        )
+        df_user['estimate_Score'] = df_user['id'].apply(lambda x: modelo_sentimiento.predict(user, x).est)
 
         # Se ordena el dataframe de manera descendente en función al score y se seleccionan los 5 principales:
-        sugerencias = (
-            df_user.sort_values("estimate_Score", ascending=False)["app_name"]
-            .head(5)
-            .to_list()
-        )
+        sugerencias = df_user.sort_values('estimate_Score', ascending=False)["app_name"].head(5).to_list()
 
         # Se crea la llave del diccionario de retorno
-        llave_dic = f"Sugerencias para el usuario {user}"
+        llave_dic = f'Sugerencias para el usuario {user}'
 
         # Se da formato a las 5 sugerencias:
-        sugerencias_formateadas = [
-            f"{i+1}. {sugerencia}" for i, sugerencia in enumerate(sugerencias)
-        ]
-        # Se libera la memoria utilizada por los dataframes intermedios
-        del df_rev_games, juegos_jugados, df_user
-        gc.collect()
+        sugerencias_formateadas = [f'{i+1}. {sugerencia}' for i, sugerencia in enumerate(sugerencias)]
 
+        # Liberamos la memoria utilizada por el DataFrame intermedio
+        gc.collect()
         # Se devuelven los resultados en un diccionario
         return {llave_dic: sugerencias_formateadas}
