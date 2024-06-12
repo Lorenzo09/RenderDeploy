@@ -22,7 +22,7 @@ def intro():
     '''
     return u.intro()
 
-@app.get("/developer/{desarrollador}",response_model=Dict[str, str],
+@app.get("/developer/{desarrollador}",response_model=List,
           description="""
             <font color="blue">
              INSTRUCCIONES<br>
@@ -36,7 +36,7 @@ def get_developer_info(desarrollador: str):
     result = u.developer(desarrollador)
     return result.to_dict(orient='records')
 
-@app.get("/userdata/{User_id}", response_model=List,  
+@app.get("/userdata/{User_id}", response_model=Dict[str, str],  
             description="""
     <font color="blue">
         Consulta de base de datos en la API STEAM_MLOPS<br>
